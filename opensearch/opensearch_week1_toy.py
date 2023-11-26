@@ -3,6 +3,7 @@
 
 from opensearchpy import OpenSearch
 
+# Step1: setup an opensearch python client
 host = 'localhost'
 port = 9200
 auth = ('admin', 'admin')  # For testing only. Don't store credentials in code.
@@ -20,6 +21,7 @@ client = OpenSearch(
     ssl_show_warn=False,
 )
 
+# Checking opensearch health
 # Do a few checks before we start indexing:
 print(client.cat.health())
 print(client.cat.indices())
@@ -30,6 +32,7 @@ try:
 except:
     print("search_fun_test doesn't exist, that's OK")
 
+# Step2: Create an index
 # Create an index with non-default settings.
 index_name = 'search_fun_revisited'
 index_body = {
@@ -44,6 +47,7 @@ index_body = {
 
 client.indices.create(index_name, body=index_body)
 
+# Step3: Indexing some content
 # Add our sample document to the index.
 docs = [
     {
@@ -93,6 +97,7 @@ print(client.cat.count(index_name, params={"v": "true"}))
 
 print(client.indices.get_mapping(index_name))
 
+# Step4: Field mappings and analysis
 # Create a new index, this time with different mappings
 index_name = 'search_fun_revisited_custom_mappings'
 index_body = {
@@ -127,7 +132,11 @@ for doc in docs:
     )
     print('\n\tResponse:')
     print(response)
+    
+# Verify they are in:
+print(client.cat.count(index_name, params={"v": "true"}))
 
+# Step5: Searching
 # Do some searches
 q = 'dogs'
 query = {
@@ -135,7 +144,7 @@ query = {
     'query': {
         'multi_match': {
             'query': q,
-            'fields': ['title^2', 'body']
+            'fields': ['title^2', 'body'] # ^2 means title 2x more important than body
         }
     }
 }
@@ -161,7 +170,7 @@ client.search(
     index=index_name
 )
 
-# try a phrase query with slop
+# try a phrase query with slop (max distance allowed between words)
 q = 'fox dog'
 query = {
     'size': 5,
@@ -206,6 +215,7 @@ client.search(
 )
 
 ###################
+# Step6: Aggregations (and Facets)
 # Aggregations
 
 query = {
@@ -289,6 +299,7 @@ client.search(
 #####  DANGER!!!!!!!!!!!
 #####
 ######################################
+# Step7: Clean up index
 # if you want to delete the documents, but keep the index, run the following:
 for doc in docs:
     doc_id = doc["id"]
